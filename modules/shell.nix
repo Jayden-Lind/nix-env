@@ -11,6 +11,9 @@
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
 
+    # Up/Down arrows search history filtered by what's already typed
+    historySubstringSearch.enable = true;
+
     history = {
       size = 100000;
       save = 100000;
@@ -26,10 +29,13 @@
       # that don't ship zsh completions themselves (terraform, ansible).
       plugins = [
         "git"
+        "sudo" # ESC ESC prepends sudo to the current command
         "kubectl"
         "helm"
         "terraform"
         "ansible"
+        "golang" # go ships no completions upstream
+        "extract" # `extract <archive>` unpacks any format
       ];
     };
 

@@ -1,10 +1,12 @@
 { pkgs, config, ... }:
 
 {
+  # Personal profile: the shared core plus things that must never reach
+  # the work laptop (git identity, sops secrets, homelab env vars).
   imports = [
-    ./packages.nix
-    ./zsh.nix
+    ../modules
     ./git.nix
+    ./secrets.nix
   ];
 
   # Let home-manager manage itself so the `home-manager` command is

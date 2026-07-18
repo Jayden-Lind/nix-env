@@ -1,0 +1,7 @@
+# sops config: which keys can decrypt which files.
+# The age key lives at ~/.config/sops/age/keys.txt on each machine
+# (same key copied to both). To use a separate key per machine instead,
+# add its public key here and run:  sops updatekeys secrets/*
+creation_rules:
+  - path_regex: secrets/.*
+    age: age1swvjjzrmv3xceqnvmz5w35nyzjudctswll9rlp09egpmmw55wqlqgq6mmp

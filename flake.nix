@@ -7,9 +7,13 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, home-manager, ... }:
+  outputs = { self, nixpkgs, home-manager, sops-nix, ... }:
     let
       mkHome = { system, homeDirectory, username ? "jayden", extraModules ? [ ] }:
         home-manager.lib.homeManagerConfiguration {
@@ -19,6 +23,7 @@
             config.allowUnfree = true;
           };
           modules = [
+            sops-nix.homeManagerModules.sops
             ./home/common.nix
             {
               home.username = username;
@@ -28,6 +33,10 @@
         };
     in
     {
+      # Shared core (packages + shell, no personal config) for other
+      # machines to consume — see examples/work/flake.nix and README.
+      homeManagerModules.default = ./modules;
+
       homeConfigurations = {
         # CachyOS desktop (x86_64 Linux)
         "jayden@desktop" = mkHome {
