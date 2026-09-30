@@ -14,10 +14,14 @@
   programs.home-manager.enable = true;
 
   home.sessionVariables = {
-    EDITOR = "vim";
-    KUBECONFIG = "${config.home.homeDirectory}/kubeconfig.conf";
+    KUBECONFIG = "${config.home.homeDirectory}/KUBECONFIG";
     TALOSCONFIG = "${config.home.homeDirectory}/git/LINDS-Terraform/proxmox/talosconfig";
   };
+
+  # ~/.config/nvim links into this checkout so LazyVim config edits and
+  # lazy-lock.json updates land straight in git (EDITOR=nvim comes from
+  # modules/neovim).
+  nixEnv.neovim.checkout = "${config.home.homeDirectory}/git/nix-env";
 
   home.sessionPath = [
     "$HOME/.local/bin"

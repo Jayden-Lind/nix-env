@@ -14,6 +14,9 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Fast-moving packages (claude-code and friends) get pulled straight
+    # from nixpkgs master — see modules/packages.nix in shell-env.
+    nixpkgs-master.url = "github:NixOS/nixpkgs/master";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -26,7 +29,7 @@
     };
   };
 
-  outputs = { nixpkgs, home-manager, shell-env, ... }:
+  outputs = { nixpkgs, nixpkgs-master, home-manager, shell-env, ... }:
     let
       system = "aarch64-darwin"; # CHANGE-ME: x86_64-linux / aarch64-darwin / x86_64-darwin
       username = "CHANGE-ME";
@@ -37,6 +40,12 @@
         pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true; # terraform, claude-code
+        };
+        extraSpecialArgs = {
+          pkgs-master = import nixpkgs-master {
+            inherit system;
+            config.allowUnfree = true;
+          };
         };
         modules = [
           shell-env.homeManagerModules.default
@@ -54,6 +63,11 @@
                 init.defaultBranch = "main";
               };
             };
+
+            # Neovim config is a read-only copy from shell-env by default.
+            # To edit it live (and commit lazy-lock.json), clone the repo
+            # and point at the clone:
+            # nixEnv.neovim.checkout = "/Users/CHANGE-ME/git/nix-env";
 
             # Work-only packages and env go here:
             # home.packages = with pkgs; [ awscli2 azure-cli ];

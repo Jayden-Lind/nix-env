@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, pkgs-master ? pkgs, ... }:
 
 {
   home.packages = with pkgs; [
@@ -15,14 +15,11 @@
     packer
     ansible
 
-    # AI tooling
-    claude-code
-
-    # Dev tooling
+    # Dev tooling (editor: Neovim, see ./neovim)
     gh
     go
+    nodejs # runtime for TypeScript projects and their debugger
     python3
-    vim
 
     # Secrets tooling (used by home/secrets.nix on personal machines)
     sops
@@ -37,7 +34,10 @@
     nmap
     rsync
     wget
-  ];
+  ] ++ (with pkgs-master; [
+    # AI tooling — pulled from nixpkgs master for faster-moving releases
+    claude-code
+  ]);
 
   # fzf keybindings (Ctrl-T file picker, Alt-C cd; atuin owns Ctrl-R)
   programs.fzf = {

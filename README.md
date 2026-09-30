@@ -18,14 +18,14 @@ without sharing anything personal:
 
 | Layer | Contents | Desktop | MacBook | Work |
 |---|---|:-:|:-:|:-:|
-| `modules/` (shareable core) | packages + zsh/fzf/atuin setup | ✅ | ✅ | ✅ |
+| `modules/` (shareable core) | packages + zsh/fzf/atuin setup + Neovim IDE | ✅ | ✅ | ✅ |
 | `home/` (personal) | git identity, sops secrets, homelab env vars | ✅ | ✅ | ❌ |
 | `hosts/*.nix` / work's own flake | machine-specific packages & overrides | own | own | own |
 
 **Where does a new package/setting go?**
 
 - Every machine including work → `modules/packages.nix` (or `modules/shell.nix`
-  for shell behaviour)
+  for shell behaviour, `modules/neovim/` for editor tooling)
 - Both personal machines, but never work → `home/common.nix` (or `home/git.nix`
   / `home/secrets.nix`)
 - One machine only → `hosts/desktop.nix`, `hosts/macbook.nix`, or the work
@@ -35,8 +35,11 @@ without sharing anything personal:
 
 **Packages** (see [`modules/packages.nix`](modules/packages.nix)):
 kubectl, helm, k9s, talosctl, kustomize, kubectx/kubens, terraform, packer,
-ansible, claude-code, gh, go, python3, vim, fzf, ripgrep, fd, jq, yq, btop,
+ansible, claude-code, gh, go, nodejs, python3, fzf, ripgrep, fd, jq, yq, btop,
 nmap, rsync, wget.
+
+**Editor**: Neovim with LazyVim as a full IDE (`vi`/`vim`/`EDITOR` all point
+at it) — see [Neovim IDE](#neovim-ide).
 
 **Shell** (see [`modules/shell.nix`](modules/shell.nix)):
 zsh with oh-my-zsh (robbyrussell theme), autosuggestions, syntax highlighting,
@@ -87,8 +90,8 @@ Open a new terminal afterwards so `nix` is on your `PATH`.
 ### 2. Clone and activate
 
 ```sh
-git clone <this-repo-url> ~/git/shell-env
-cd ~/git/shell-env
+git clone <this-repo-url> ~/git/nix-env
+cd ~/git/nix-env
 
 # Desktop:
 nix run home-manager -- switch --flake .#jayden@desktop -b backup
@@ -105,8 +108,11 @@ After the first switch, home-manager itself is installed, so future
 activations are just:
 
 ```sh
-home-manager switch --flake ~/git/shell-env#jayden@desktop
+home-manager switch --flake ~/git/nix-env#jayden@desktop
 ```
+
+> Clone to `~/git/nix-env` — `~/.config/nvim` links into that path (see
+> [Neovim IDE](#neovim-ide)); a switch warns if it's missing.
 
 ### 3. Log out / open a new shell
 
@@ -173,7 +179,7 @@ read the secrets; without it the secrets are unrecoverable.
 **Add a new secret** (e.g. talosconfig):
 
 ```sh
-cd ~/git/shell-env
+cd ~/git/nix-env
 sops encrypt --filename-override secrets/talosconfig \
   --input-type binary --output-type binary ~/path/to/talosconfig > secrets/talosconfig
 ```
@@ -205,6 +211,103 @@ home-manager generations           # list previous generations
 
 Or just `git revert` the change and `switch` again.
 
+## Neovim IDE
+
+[LazyVim](https://www.lazyvim.org) on Neovim, set up in
+[`modules/neovim/`](modules/neovim/) so it's reproducible on every machine:
+
+| Piece | Where | Pinned by |
+|---|---|---|
+| Neovim, language servers, formatters, linters, debug adapters | [`modules/neovim/default.nix`](modules/neovim/default.nix) | `flake.lock` |
+| LazyVim config (`~/.config/nvim`) | [`modules/neovim/config/`](modules/neovim/config/) | git |
+| Plugins (LazyVim + extras) | installed by lazy.nvim | [`lazy-lock.json`](modules/neovim/config/lazy-lock.json) |
+
+mason.nvim is disabled — every tool comes from Nix and sits only on nvim's
+`PATH` (appended, so a project's devshell/direnv toolchain still wins).
+
+**Languages** (LSP + format-on-save + lint, plus treesitter highlighting):
+
+| Language | Server | Format / lint | Debug / test |
+|---|---|---|---|
+| Go | gopls | goimports + gofumpt, golangci-lint | delve, neotest |
+| TypeScript / JS | vtsls, eslint | prettier (only with a prettier config), else LSP | js-debug |
+| Ansible | ansiblels | ansible-lint | `<leader>ta` runs the playbook |
+| Terraform / Packer | terraform-ls | `terraform fmt` / `packer fmt`, `terraform validate` | |
+| Bash | bashls | shfmt, shellcheck | |
+| Lua (this config) | lua_ls + lazydev | stylua | |
+| Nix | nil | nixfmt, statix | |
+| YAML / Helm / k8s | yamlls (+ SchemaStore), helm_ls | manual only (see below) | |
+| Docker / Compose | dockerls, compose LS | hadolint | |
+| Python | pyright, ruff | ruff | debugpy, neotest |
+| JSON / TOML / Markdown | jsonls, taplo, marksman | markdownlint | |
+
+**Claude Code** is built in via
+[claudecode.nvim](https://github.com/coder/claudecode.nvim): it runs `claude`
+in a split and speaks Claude Code's IDE protocol, so Claude sees your
+selection/diagnostics and proposes edits as diffs inside Neovim. A `claude`
+started in another terminal can attach with `/ide`.
+
+### First launch
+
+1. Set your terminal font to **JetBrainsMono Nerd Font** (installed by this
+   module; iTerm2: Settings → Profiles → Text → Font). Without a Nerd Font,
+   icons render as boxes.
+2. Run `nvim` and leave it open until it settles: the first start clones the
+   pinned plugins, then compiles the treesitter parsers in the background
+   (about a minute). Any parser that didn't finish (e.g. you quit early) is
+   retried on the next start.
+3. `:checkhealth lazyvim` should be all green.
+
+### Key bindings
+
+`<leader>` is Space — press it and wait for the which-key menu.
+
+| Keys | Action |
+|---|---|
+| `<leader><space>` / `<leader>/` | find files / grep project |
+| `<leader>e` | file explorer |
+| `gd` / `gr` / `K` | go to definition / references / hover |
+| `<leader>ca` / `<leader>cr` / `<leader>cf` | code action / rename / format |
+| `<leader>xx` | diagnostics list |
+| `<leader>gg` | lazygit |
+| `<leader>d…` | debugger (`<leader>db` breakpoint, `<leader>dc` run/continue) |
+| `<leader>t…` | tests (`<leader>tr` nearest, `<leader>tt` file) |
+| `<leader>ac` / `<leader>af` | toggle / focus Claude Code |
+| `<leader>as` | send selection (visual) or file (explorer) to Claude |
+| `<leader>ab` | add current buffer to Claude's context |
+| `<leader>aa` / `<leader>ad` | accept / reject Claude's proposed diff |
+| `Ctrl-/` | terminal |
+
+### Editing the config
+
+On the personal machines `~/.config/nvim` is a live link into this checkout
+(`nixEnv.neovim.checkout` in [`home/common.nix`](home/common.nix)), so edit
+the Lua under `modules/neovim/config/` and restart nvim — no switch needed.
+The work laptop gets a read-only copy from the flake instead; lazy.nvim keeps
+its lockfile in `~/.local/state/nvim` there.
+
+- **Add a language:** enable its LazyVim extra (`:LazyExtras`, or an `import`
+  line in [`lua/config/lazy.lua`](modules/neovim/config/lua/config/lazy.lua)),
+  add the server/formatter packages to `extraPackages` in
+  [`modules/neovim/default.nix`](modules/neovim/default.nix), then switch.
+  `<leader>cl` (LSP info) and `:ConformInfo` show what's attached.
+- **Update plugins:** `:Lazy update`, then commit
+  `modules/neovim/config/lazy-lock.json`. On the other machines, after
+  pulling: `:Lazy restore`. To roll back, check out an older lockfile and
+  `:Lazy restore`.
+- **Update language servers:** they follow `flake.lock`, like every other
+  package (`nix flake update`).
+
+Deliberate deviations from stock LazyVim:
+
+- YAML isn't formatted on save — yamlls would requote/rewrap existing
+  Ansible/k8s/Helm files. Format explicitly with `<leader>cf`, or enable it
+  for a buffer with `<leader>uF`.
+- prettier only runs in projects that have a prettier config; elsewhere
+  formatting falls back to the language server.
+- No Copilot/other AI completion (the module also reaches the work laptop).
+  Opt in per machine via `:LazyExtras` → `ai.copilot`.
+
 ## Repo layout
 
 ```
@@ -213,6 +316,7 @@ flake.lock          # pinned versions (commit this!)
 modules/            # SHAREABLE core — exported as homeManagerModules.default
   packages.nix      # the tool list
   shell.nix         # zsh + oh-my-zsh + fzf + atuin + completions
+  neovim/           # Neovim IDE: default.nix (LSPs etc.) + config/ (LazyVim)
 home/               # PERSONAL profile (desktop + macbook only)
   common.nix        # modules/ + personal env vars, PATH, stateVersion
   git.nix           # personal git identity

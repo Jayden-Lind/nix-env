@@ -3,6 +3,7 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-master.url = "github:NixOS/nixpkgs/master";
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -13,7 +14,7 @@
     };
   };
 
-  outputs = { self, nixpkgs, home-manager, sops-nix, ... }:
+  outputs = { self, nixpkgs, nixpkgs-master, home-manager, sops-nix, ... }:
     let
       mkHome = { system, homeDirectory, username ? "jayden", extraModules ? [ ] }:
         home-manager.lib.homeManagerConfiguration {
@@ -21,6 +22,15 @@
             inherit system;
             # terraform (BSL licence) and claude-code are marked unfree
             config.allowUnfree = true;
+          };
+          # Fast-moving packages (claude-code and friends) get pulled
+          # straight from nixpkgs master so we're not stuck waiting on
+          # the next unstable-channel promotion for point releases.
+          extraSpecialArgs = {
+            pkgs-master = import nixpkgs-master {
+              inherit system;
+              config.allowUnfree = true;
+            };
           };
           modules = [
             sops-nix.homeManagerModules.sops
