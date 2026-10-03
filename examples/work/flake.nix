@@ -40,6 +40,7 @@
         pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true; # terraform, claude-code
+          overlays = [ shell-env.overlays.default ]; # latest claude-code, not nixpkgs' lag
         };
         extraSpecialArgs = {
           pkgs-master = import nixpkgs-master {

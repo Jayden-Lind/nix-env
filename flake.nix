@@ -22,6 +22,7 @@
             inherit system;
             # terraform (BSL licence) and claude-code are marked unfree
             config.allowUnfree = true;
+            overlays = [ self.overlays.default ];
           };
           # Fast-moving packages (claude-code and friends) get pulled
           # straight from nixpkgs master so we're not stuck waiting on
@@ -46,6 +47,10 @@
       # Shared core (packages + shell, no personal config) for other
       # machines to consume — see examples/work/flake.nix and README.
       homeManagerModules.default = ./modules;
+
+      # Repoints claude-code at the actual latest release instead of
+      # nixpkgs' lagging pin — see modules/overlay.nix.
+      overlays.default = import ./modules/overlay.nix;
 
       homeConfigurations = {
         # CachyOS desktop (x86_64 Linux)
