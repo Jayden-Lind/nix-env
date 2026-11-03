@@ -35,8 +35,9 @@ without sharing anything personal:
 
 **Packages** (see [`modules/packages.nix`](modules/packages.nix)):
 kubectl, helm, k9s, talosctl, kustomize, kubectx/kubens, terraform, packer,
-ansible, claude-code, gh, go, nodejs, python3, fzf, ripgrep, fd, jq, yq, btop,
-nmap, rsync, wget.
+ansible, claude-code, gh, go, nodejs, fzf, ripgrep, fd, jq, yq, nmap, rsync,
+wget, plus python3 and btop on macOS only (on CachyOS the pacman builds win:
+Nix python3 can't load system libraries and Nix btop can't see the NVIDIA GPU).
 
 **Editor**: Neovim with LazyVim as a full IDE (`vi`/`vim`/`EDITOR` all point
 at it) — see [Neovim IDE](#neovim-ide).

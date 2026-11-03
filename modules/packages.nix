@@ -1,4 +1,4 @@
-{ pkgs, pkgs-master ? pkgs, ... }:
+{ lib, pkgs, pkgs-master ? pkgs, ... }:
 
 {
   home.packages = with pkgs; [
@@ -19,7 +19,6 @@
     gh
     go
     nodejs # runtime for TypeScript projects and their debugger
-    python3
 
     # Secrets tooling (used by home/secrets.nix on personal machines)
     sops
@@ -30,10 +29,15 @@
     fd
     jq
     yq-go
-    btop
     nmap
     rsync
     wget
+  ] ++ lib.optionals pkgs.stdenv.hostPlatform.isDarwin [
+    # macOS only. On CachyOS the pacman builds must win on PATH: Nix python3
+    # can't load system libraries (gi, libz, libcuda), and Nix btop can't
+    # load NVML, so it never sees the RTX 3090.
+    pkgs.python3
+    pkgs.btop
   ] ++ (with pkgs-master; [
     # AI tooling — pulled from nixpkgs master for faster-moving releases
     claude-code
@@ -43,6 +47,7 @@
   programs.fzf = {
     enable = true;
     enableZshIntegration = true;
+    historyWidget.zsh.command = ""; # Ctrl-R belongs to atuin
   };
 
   # Searchable shell history; syncs E2E-encrypted between machines that

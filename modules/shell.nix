@@ -11,8 +11,24 @@
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
 
-    # Up/Down arrows search history filtered by what's already typed
-    historySubstringSearch.enable = true;
+    # Up/Down arrows search history filtered by what's already typed. Both
+    # encodings are bound: zle runs in application cursor mode, where Up
+    # sends ^[OA, and oh-my-zsh would otherwise keep that for prefix search.
+    historySubstringSearch = {
+      enable = true;
+      searchUpKey = [ "^[[A" "^[OA" ];
+      searchDownKey = [ "^[[B" "^[OB" ];
+    };
+
+    # `ssh host cmd` runs a non-interactive, non-login zsh, which never
+    # reaches the Nix setup in /etc/zsh. Gated to that case only: on macOS,
+    # sourcing it unconditionally from .zshenv would run before path_helper
+    # and leave /usr/bin ahead of the Nix profile in every Terminal.
+    envExtra = ''
+      if [[ ! -o interactive && ! -o login && -e /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]]; then
+        . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+      fi
+    '';
 
     history = {
       size = 100000;
